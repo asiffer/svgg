@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>svgg</title>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/svg" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body class="flex flex-row justify-center">
+    <main class="font-sans w-[600px] flex flex-col gap-5 items-stretch">
+        <hgroup class="flex flex-col gap-2 py-2">
+            <a href="/">
+                <h1 class="text-5xl font-light">sv<span class="italic font-bold">gg</span></h1>
+            </a>
+            <h2 class="text-muted-foreground">Turn raw svg into image link</h2>
+        </hgroup>
+        {{template "content" .}}
+    </main>
+</body>
+
+</html>

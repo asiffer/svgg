@@ -1,0 +1,23 @@
+{{define "content"}}
+<div class="w-full flex flex-row justify-center items-center">
+    <a class="link truncate" href="{{ .Href }}">{{ .Href }}</a>
+</div>
+<button id="copy-button" class="primary">Copy to clipboard</button>
+<script>
+    const href = "{{ .Href }}";
+    const button = document.querySelector("#copy-button");
+    if (button) {
+        button.addEventListener("click", () => {
+            try {
+                navigator.clipboard.writeText(href).then(() => {
+                    button.classList.remove("primary");
+                    button.classList.add("success")
+                    button.textContent = "Copied!"
+                });
+            } catch (error) {
+                console.error(error.message);
+            }
+        });
+    }
+</script>
+{{end}}
