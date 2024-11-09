@@ -48,7 +48,7 @@ var (
 var mux = http.NewServeMux()
 
 //go:embed static
-var static embed.FS
+// var static embed.FS
 
 //go:embed templates
 var templates embed.FS
@@ -75,10 +75,10 @@ func init() {
 	Error = log.New(os.Stderr, "\033[31m   ERROR ", logFlags)
 	Critical = log.New(os.Stderr, "\033[41mCRITICAL ", logFlags)
 
-	staticFS := http.FileServer(http.FS(static))
+	// staticFS := http.FileServer(http.FS(static))
 	mux.HandleFunc(READ_URL, read)
 	mux.HandleFunc(CREATE_URL, create)
-	mux.Handle(STATIC_URL, staticFS)
+	// mux.Handle(STATIC_URL, staticFS)
 	mux.HandleFunc("/", index)
 }
 
