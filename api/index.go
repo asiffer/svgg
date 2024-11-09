@@ -129,7 +129,8 @@ func read(w http.ResponseWriter, r *http.Request) {
 
 func create(w http.ResponseWriter, r *http.Request) {
 	scheme := "http"
-	if r.TLS != nil {
+	// direct https connection or behind a proxy
+	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
 		scheme = "https"
 	}
 
