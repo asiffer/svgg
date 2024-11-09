@@ -39,16 +39,7 @@ var (
 	ENCODER   = base64.URLEncoding.WithPadding(base64.StdPadding).Strict()
 )
 
-// config
-var (
-	host      = "127.0.0.1"
-	port uint = 4444
-)
-
 var mux = http.NewServeMux()
-
-//go:embed static
-// var static embed.FS
 
 //go:embed templates
 var templates embed.FS
