@@ -16,15 +16,6 @@ import (
 	"text/template"
 )
 
-const BANNER = "\033[33m" + `
-███████╗██╗   ██╗ ██████╗  ██████╗ 
-██╔════╝██║   ██║██╔════╝ ██╔════╝ 
-███████╗██║   ██║██║  ███╗██║  ███╗
-╚════██║╚██╗ ██╔╝██║   ██║██║   ██║
-███████║ ╚████╔╝ ╚██████╔╝╚██████╔╝
-╚══════╝  ╚═══╝   ╚═════╝  ╚═════╝ 
-` + "\033[0m"
-
 // constants
 const (
 	SUFFIX     = ".svg"
@@ -35,7 +26,7 @@ const (
 
 // weak constants
 var (
-	SANITIZER = regexp.MustCompile(`^[a-zA-Z0-9<>!"'./%= :\-,\n\r?_#]+$`)
+	VALIDATOR = regexp.MustCompile(`(?s)<svg\b[^>]*>(.*?)<\/svg>`)
 	ENCODER   = base64.URLEncoding.WithPadding(base64.StdPadding).Strict()
 )
 
@@ -50,11 +41,9 @@ type Link struct {
 }
 
 var (
-	Debug    *log.Logger
-	Info     *log.Logger
-	Warning  *log.Logger
-	Error    *log.Logger
-	Critical *log.Logger
+	Debug *log.Logger
+	Info  *log.Logger
+	Error *log.Logger
 )
 
 const logFlags = log.Ltime
@@ -62,15 +51,22 @@ const logFlags = log.Ltime
 func init() {
 	Debug = log.New(os.Stderr, "\033[37m   DEBUG ", logFlags)
 	Info = log.New(os.Stdout, "\033[97m    INFO ", logFlags)
-	Warning = log.New(os.Stdout, "\033[33m WARNING ", logFlags)
 	Error = log.New(os.Stderr, "\033[31m   ERROR ", logFlags)
-	Critical = log.New(os.Stderr, "\033[41mCRITICAL ", logFlags)
 
-	// staticFS := http.FileServer(http.FS(static))
 	mux.HandleFunc(READ_URL, read)
 	mux.HandleFunc(CREATE_URL, create)
-	// mux.Handle(STATIC_URL, staticFS)
 	mux.HandleFunc("/", index)
+
+}
+
+func userError(w http.ResponseWriter, msg string, code int) {
+	Error.Println(msg)
+	http.Error(w, msg, code)
+}
+
+func serverError(w http.ResponseWriter, msg string, code int) {
+	Error.Println(msg)
+	http.Error(w, "server error", code)
 }
 
 // encode compresses an input buffer and encode it into base64
@@ -109,21 +105,18 @@ func read(w http.ResponseWriter, r *http.Request) {
 
 	data, err := decode(content)
 	if err != nil {
-		Error.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
+		userError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// sanitizedData := SANITIZER.ReplaceAll(data, []byte(""))
-	sanitizedData := data
-	// if !SANITIZER.Match(data) {
-	// 	fmt.Println("error: invalid payload:", string(data))
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	return
-	// }
+	if !VALIDATOR.Match(data) {
+		userError(w, fmt.Sprintf("invalid svg: %s", data), http.StatusBadRequest)
+		return
+	}
+
 	w.Header().Set("Content-Type", "image/svg+xml")
-	if _, err := w.Write(sanitizedData); err != nil {
-		Critical.Println(err)
+	if _, err := w.Write(data); err != nil {
+		serverError(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -139,23 +132,27 @@ func create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	content := r.FormValue("content")
+	content = strings.Trim(content, "\r\n")
 	if content == "" {
-		Warning.Println("empty payload")
-		w.WriteHeader(http.StatusBadRequest)
+		userError(w, "empty payload", http.StatusBadRequest)
 		return
 	}
+
+	if !VALIDATOR.MatchString(content) {
+		userError(w, fmt.Sprintf("invalid svg: %s", content), http.StatusBadRequest)
+		return
+	}
+
 	Debug.Printf("content: %s\n", content)
 	data, err := encode([]byte(content))
 
 	if err != nil {
-		Error.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		serverError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	t, err := template.ParseFS(templates, "templates/base.html", "templates/result.html")
 	if err != nil {
-		Error.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		serverError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	link := Link{Href: fmt.Sprintf("%s://%s%s%s", scheme, r.Host, READ_URL, data)}
@@ -163,37 +160,33 @@ func create(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Accept") == "application/json" {
 		bytes, err := json.Marshal(link)
 		if err != nil {
-			Critical.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
+			serverError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		if _, err := w.Write(bytes); err != nil {
-			Critical.Println(err)
+			serverError(w, err.Error(), http.StatusInternalServerError)
 		}
 		return
 	}
 
 	if err := t.Execute(w, link); err != nil {
-		Critical.Println(err)
+		serverError(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
-		Warning.Printf("method not allowed: %v\n", r.Method)
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		userError(w, fmt.Sprintf("method not allowed: %v\n", r.Method), http.StatusMethodNotAllowed)
 		return
 	}
 	t, err := template.ParseFS(templates, "templates/base.html", "templates/form.html")
 	if err != nil {
-		Critical.Panicln(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		serverError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if err := t.Execute(w, Link{Href: CREATE_URL}); err != nil {
-		Error.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		serverError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
