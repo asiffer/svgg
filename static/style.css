@@ -594,6 +594,14 @@ body{
   display: flex;
 }
 
+.aspect-square{
+  aspect-ratio: 1 / 1;
+}
+
+.h-7{
+  height: 1.75rem;
+}
+
 .w-\[600px\]{
   width: 600px;
 }
@@ -610,6 +618,10 @@ body{
   flex-direction: column;
 }
 
+.items-end{
+  align-items: flex-end;
+}
+
 .items-center{
   align-items: center;
 }
@@ -620,6 +632,10 @@ body{
 
 .justify-center{
   justify-content: center;
+}
+
+.justify-between{
+  justify-content: space-between;
 }
 
 .gap-2{
