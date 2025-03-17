@@ -1,0 +1,12 @@
+{{ define "code" }}
+<div class="w-full flex flex-col items-stretch gap-1">
+    <label>{{ .Label }}</label>
+    <div class="w-full flex flex-row items-stretch gap-3">
+        <pre class="w-full overflow-x-auto py-1.5"><code id="{{ .Tag }}" ></code></pre>
+        <script>
+            document.getElementById("{{ .Tag }}").innerHTML = hljs.highlight(`{{ .Content }}`, { language: '{{ .Language }}' }).value;
+        </script>
+        <button class="secondary w-24" onclick='copyToClipboard(this, "secondary", `{{ .Content }}`)'>Copy</button>
+    </div>
+</div>
+{{ end }}

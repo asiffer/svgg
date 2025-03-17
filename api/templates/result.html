@@ -1,23 +1,36 @@
 {{define "content"}}
+<script>
+    const copyAnimate = (element, baseClass = "secondary") => {
+        setTimeout(() => {
+            setTimeout(() => { element.textContent = "Copied!" }, 50);
+            element.classList.remove(baseClass);
+            element.classList.add("success");
+            setTimeout(() => { element.textContent = "Copy" }, 1050);
+            setTimeout(() => { element.classList.remove("success"); element.classList.add(baseClass) }, 1000);
+        });
+    };
+
+    const copyToClipboard = async (element, baseClass, content) => {
+        try {
+            navigator.clipboard.writeText(content).then(() => copyAnimate(element, baseClass)).catch(console.error);
+        } catch (error) {
+            console.error(error.message);
+        }
+    };
+</script>
 <div class="w-full flex flex-row justify-center items-center">
     <a class="link truncate" href="{{ .Href }}">{{ .Href }}</a>
 </div>
-<button id="copy-button" class="primary">Copy to clipboard</button>
-<script>
-    const href = "{{ .Href }}";
-    const button = document.querySelector("#copy-button");
-    if (button) {
-        button.addEventListener("click", () => {
-            try {
-                navigator.clipboard.writeText(href).then(() => {
-                    button.classList.remove("primary");
-                    button.classList.add("success")
-                    button.textContent = "Copied!"
-                });
-            } catch (error) {
-                console.error(error.message);
-            }
-        });
-    }
-</script>
+<button id="copy-button" class="primary" onclick="copyToClipboard(this, 'primary', '{{ .Href }}')">Copy URL to
+    clipboard</button>
+
+<div class="w-full flex flex-row items-center justify-center border rounded-xl p-10">
+    <img class="max-h-[300px]" src="{{ .Href }}" alt="preview">
+</div>
+<div class="mt-5 w-full flex flex-col items-stretch gap-5">
+    {{ range .Shortcuts }}
+    {{ template "code" . }}
+    {{ end }}
+
+</div>
 {{end}}

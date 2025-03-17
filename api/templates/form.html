@@ -1,6 +1,6 @@
 {{define "content"}}
 <form action="{{ .Href }}" method="post" class="flex flex-col gap-5">
-    <textarea name="content" class="w-full font-mono"
+    <textarea name="content" class="w-full font-mono" rows="8"
         placeholder='<svg xmlns="http://www.w3.org/2000/svg"></svg>'></textarea>
     <button type="submit" class="primary">Generate link</button>
 </form>

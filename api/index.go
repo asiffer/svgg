@@ -40,6 +40,20 @@ type Link struct {
 	Href string `json:"href"`
 }
 
+// Shortcut is the structure to display the link into specific context
+type Shortcut struct {
+	Label    string `json:"label"`
+	Tag      string `json:"tag"`
+	Content  string `json:"content"`
+	Language string `json:"language"`
+}
+
+// Result combine the base link and provided shortcuts
+type Results struct {
+	Href      string     `json:"href"`
+	Shortcuts []Shortcut `json:"results"`
+}
+
 var (
 	Debug *log.Logger
 	Info  *log.Logger
@@ -150,12 +164,23 @@ func create(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	t, err := template.ParseFS(templates, "templates/base.html", "templates/result.html")
+	t, err := template.ParseFS(templates, "templates/base.html", "templates/result.html", "templates/code.html")
 	if err != nil {
 		serverError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	link := Link{Href: fmt.Sprintf("%s://%s%s%s", scheme, r.Host, READ_URL, data)}
+	href := fmt.Sprintf("%s://%s%s%s", scheme, r.Host, READ_URL, data)
+	link := Results{
+		Href: href,
+		Shortcuts: []Shortcut{
+			{Label: "Image", Tag: "img-tag", Content: fmt.Sprintf(`<img src="%s" alt="image">`, href), Language: "html"},
+			{Label: "Markdown", Tag: "md-tag", Content: fmt.Sprintf(`![Image](%s)`, href), Language: "markdown"},
+			{Label: "Favicon", Tag: "favicon-tag", Content: fmt.Sprintf(`<link rel="icon" type="image/svg+xml" href="%s">`, href), Language: "html"},
+			{Label: "CSS", Tag: "css-tag", Content: fmt.Sprintf(`url("%s")`, href), Language: "css"},
+			{Label: "Object", Tag: "obj-tag", Content: fmt.Sprintf(`<object type="image/svg+xml" data="%s"></object>`, href), Language: "html"},
+			{Label: "Embed", Tag: "embed-tag", Content: fmt.Sprintf(`<embed type="image/svg+xml" src="%s">`, href), Language: "html"},
+		},
+	}
 
 	if r.Header.Get("Accept") == "application/json" {
 		bytes, err := json.Marshal(link)
